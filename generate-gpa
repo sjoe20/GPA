@@ -1,0 +1,30 @@
+#!/bin/bash
+# There are four arguments - first one is name of input file, second is
+# Faculty of interest, third is month, and fourth is year. The third
+# and fourth arguments allow us to restrict a listing to the students
+# born in that month and year or earlier.
+#
+# The month should be three letters and start with a capital letter.
+#
+if [ -f outgpa.csv ]; then
+   rm outgpa.csv
+fi
+
+gpa-grades $1 outgpa.csv $2
+
+if [ -f gpasorted.csv ]; then
+   rm gpasorted.csv
+fi
+sort outgpa.csv > gpasorted.csv
+
+if [ -f gpa.csv ]; then
+   rm gpa.csv
+fi
+gpacalc gpasorted.csv gpa.csv $3 $4
+
+echo -n 'Enter 00 to end and anything else to clean up csv files: '
+read task
+if [ $task != "00" ]; then
+   rm outgpa.csv
+   rm gpasorted.csv
+fi

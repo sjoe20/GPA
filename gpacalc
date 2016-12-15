@@ -1,0 +1,109 @@
+#!/usr/bin/perl
+#
+# A simple Perl script to calculate the GPA of students,
+#
+# One may also specify a month and year so that the output is restricted to
+# students born in that month and year or earlier.
+#
+# The generate-gpa script should be used to run this script.
+#
+# Arguments are name of input file, name of output file, month, and year.
+#
+# Output is in the form of a CSV file.
+#
+open(GRADEDATA,$ARGV[0]);
+open(OUTPUT,">$ARGV[1]");
+#printf STDOUT "%s-%d\n",$ARGV[2],$ARGV[3];
+
+$oldid = "0";
+$first = 1 ;
+@months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+
+$totcredits = 0;
+$totval = 0;
+
+while (<GRADEDATA>) {
+   @grade = split(/,/,$_);
+   $name = $grade[0];
+   $id = $grade[1];
+   @dob = split(/-/,$grade[2]);
+   $credits = $grade[4];
+   $gpanum = $grade[6];
+
+   if ($oldid ne $id) {
+      if ($first == 1) {
+         if ($gpanum >= 0) {
+            $totcredits += $credits;
+            $totval += $credits * $gpanum;
+         }
+         $oldname = $name;
+         $oldid = $id;
+         @olddob = @dob;
+         $first = 0;
+      }
+      else {
+         $oktoprint = 0;
+         if ($olddob[2] < $ARGV[3]) {
+            $oktoprint = 1;
+         }
+         for ($i = 0; $i <12; $i++) {
+             if ($olddob[1] eq $months[$i]) {
+                $posdob = $i;
+             }
+             if ($ARGV[2] eq $months[$i]) {
+                $posmonth = $i;
+             }
+         }
+         if (($posdob <= $posmonth) and ($olddob[2] == $ARGV[3])) {
+            $oktoprint = 1;
+         }
+         if ($oktoprint == 1) {
+            if ($totcredits > 0) { 
+               printf OUTPUT "%s,%s,%s,%d,%6.2f,%d\n", $oldname, $oldid, $olddob[1], $olddob[2], $totval/$totcredits, $totcredits;
+            }
+            else {
+               printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[2];
+            }
+         }
+         if ($gpanum >= 0) {
+            $totcredits = $credits;
+            $totval = $credits * $gpanum;
+         } else {
+            $totcredits = 0;
+            $totval = 0;
+         }
+         $oldname = $name;
+         $oldid = $id;
+         @olddob = @dob;
+      }
+   } else {
+      if ($gpanum >= 0) {
+         $totcredits += $credits;
+         $totval += $credits * $gpanum;
+      }
+   }
+}
+# Last student.
+$oktoprint = 0;
+if ($olddob[2] < $ARGV[3]) {
+   $oktoprint = 1;
+}
+for ($i = 0; $i <12; $i++) {
+    if ($olddob[1] eq $months[$i]) {
+       $posdob = $i;
+    }
+    if ($ARGV[2] eq $months[$i]) {
+       $posmonth = $i;
+    }
+}
+if (($posdob <= $posmonth) and ($olddob[2] == $ARGV[3])) {
+   $oktoprint = 1;
+}
+if ($oktoprint == 1) {
+   if ($totcredits > 0) { 
+      printf OUTPUT "%s,%s,%s,%d,%6.2f,%d\n", $oldname, $oldid, $olddob[1], $olddob[2], $totval/$totcredits, $totcredits;
+   }
+   else {
+      printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[2];
+   }
+}
