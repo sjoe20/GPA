@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use strict;
 #
 # A simple Perl script to calculate the GPA of students,
 #
@@ -15,20 +16,27 @@ open(GRADEDATA,$ARGV[0]);
 open(OUTPUT,">$ARGV[1]");
 #printf STDOUT "%s-%d\n",$ARGV[2],$ARGV[3];
 
-$oldid = "0";
-$first = 1 ;
-@months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
+my $oldid = "0";
+my $first = 1 ;
+my @months = qw(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec);
 
-$totcredits = 0;
-$totval = 0;
+my $totcredits = 0;
+my $totval = 0;
+
+my $oldname;
+my @olddob;
+my $i;
+my $oktoprint;
+my $posdob;
+my $posmonth;
 
 while (<GRADEDATA>) {
-   @grade = split(/,/,$_);
-   $name = $grade[0];
-   $id = $grade[1];
-   @dob = split(/-/,$grade[2]);
-   $credits = $grade[4];
-   $gpanum = $grade[6];
+   my @grade = split(/,/,$_);
+   my $name = $grade[0];
+   my $id = $grade[1];
+   my @dob = split(/-/,$grade[2]);
+   my $credits = $grade[4];
+   my $gpanum = $grade[6];
 
    if ($oldid ne $id) {
       if ($first == 1) {
