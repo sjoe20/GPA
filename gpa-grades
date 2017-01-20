@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+use strict;
 #
 # A simple Perl script to read in a CSV file and dump out appropriate
 # information so that a student's GPA may be produced by another program.
@@ -21,7 +22,12 @@
 open(GRADEDATA,$ARGV[0]);
 open(OUTPUT,">>$ARGV[1]");
 
-$year = substr($ARGV[0], 0, 4);
+my $year = substr($ARGV[0], 0, 4);
+my $cols;
+my @allgrades;
+my @gpanum;
+my $gpaval;
+
 if ($year < 2016) {
    $cols = 27;
    @allgrades = qw(A+ A A- B+ B B- C+ C P RP IC ... D E F NC WD);
@@ -37,29 +43,29 @@ if ($year < 2014) {
    exit;
 }
 
-$start = 0;
+my $start = 0;
 
 while (<GRADEDATA>) {
    $start += 1;
 #  Ignore first five header lines.
    if ($start > 5) {
-      @grade = split(/,/,$_);
-      $faculty = $grade[0];
-      $papercode = $grade[1];
-      $credits = $grade[2];
-      $name1 = $grade[3];
+      my @grade = split(/,/,$_);
+      my $faculty = $grade[0];
+      my $papercode = $grade[1];
+      my $credits = $grade[2];
+      my $name1 = $grade[3];
       $name1 =~ s/^"//;
-      $name2 = $grade[4];
+      my $name2 = $grade[4];
       $name2 =~ s/"$//;
-      $id = $grade[5];
-      $stufaculty = $grade[6];
-      $birth = $grade[7];
+      my $id = $grade[5];
+      my $stufaculty = $grade[6];
+      my $birth = $grade[7];
       
 
       if (index($grade[8],"Total") > -1 and index($stufaculty,$ARGV[2]) > -1) {
 
-         $finalgrade = "MISSING";
-         for ($i = 10; $i < $cols; $i++) {
+         my $finalgrade = "MISSING";
+         for (my $i = 10; $i < $cols; $i++) {
              if ($grade[$i] eq "1") {
                 $finalgrade = $allgrades[$i-10];
                 $gpaval = $gpanum[$i-10];
