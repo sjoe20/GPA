@@ -5,75 +5,233 @@ use strict;
 # information so that a student's GPA may be produced by another program.
 #
 # Arguments are name of input file. name of output file, and Faculty
-# of interest.
-
-# The first four characters of the title of the input file should be the year.
+# of interest. The GPA calculation assumes grades from 2016 onwards.
+# However, there is an optional fourth argument of "-old" which will yield
+# a GPA calculation based on grades prior to 2016.
 #
-# Headers in CSV file are:
+# There should be a single header line in the CSV file.
+#
+# Headers searched for in this header line are:
 # Owning School Clevel, Paper Occurrence, Credits, Name, Student ID,
-# School of Study Clevel, Date of Birth, Result Status, Blank column.
+# School of Study Clevel, Dateofbirth, Prog Abbr, Result Status, Grade.
 #
-# Then there are # 11 columns of passing grades (but just 10 columns prior
-# to 2016), # 7 columns of failing grades including # ... and NC (but
-# just 6 columns prior to 2014). Script will exit if year is before 2014.
-# 
-# Output is in the form of a CSV file.
+# The program will still run if "Result Status" is missing. However, it
+# will exit if any of the other headers are missing.
+#
+# We shall ignore the ... grade and any "blank" grades.
+#
+# Output is in the form of a CSV file
 #
 open(GRADEDATA,$ARGV[0]);
-open(OUTPUT,">>$ARGV[1]");
+open(OUTPUT,">$ARGV[1]");
 
-my $year = substr($ARGV[0], 0, 4);
-my $cols;
 my @allgrades;
 my @gpanum;
 my $gpaval;
 
-if ($year < 2016) {
-   $cols = 27;
+my $grade;
+my @grade;
+
+if ($ARGV[3] eq "-old") {
    @allgrades = qw(A+ A A- B+ B B- C+ C P RP IC ... D E F NC WD);
-# In GPA calculation, we ignore P, ..., F and NC.
-   @gpanum = qw(9 8 7 6 5 4 3 2 -1 1 0 -1 0 0 -1 -1 0);
+# In the GPA calculation, we ignore P and  "...".
+   @gpanum = qw(9 8 7 6 5 4 3 2 -1 1 0 -1 0 0 0 0 0);
 } else {
-   $cols = 28;
    @allgrades = qw(A+ A A- B+ B B- C+ C C- P RP IC ... D E F NC WD);
-   @gpanum = qw(9 8 7 6 5 4 3 2 1 -1 0 0 -1 0 0 -1 -1 0);
+   @gpanum = qw(9 8 7 6 5 4 3 2 1 -1 0 0 -1 0 0 0 0 0);
 }
-if ($year < 2014) {
-   printf "Warning: The year is prior to 2014 so this script will exit.\n";
-   exit;
-}
+my $cols = $#allgrades;
+
+my $i;
+my $col_faculty;
+my $col_papercode;
+my $col_credits;
+my $col_name;
+my $col_id;
+my $col_stufaculty;
+my $col_birth;
+my $col_prog;
+my $col_status;
+my $col_gradeval;
 
 my $start = 0;
 
+use Text::CSV::Encoded;
+my $csv = Text::CSV::Encoded->new({sep_char => ',',
+                                   encoding_in  => "utf-8"});
+
 while (<GRADEDATA>) {
    $start += 1;
-#  Ignore first five header lines.
-   if ($start > 5) {
-      my @grade = split(/,/,$_);
-      my $faculty = $grade[0];
-      my $papercode = $grade[1];
-      my $credits = $grade[2];
-      my $name1 = $grade[3];
-      $name1 =~ s/^"//;
-      my $name2 = $grade[4];
-      $name2 =~ s/"$//;
-      my $id = $grade[5];
-      my $stufaculty = $grade[6];
-      my $birth = $grade[7];
-      
 
-      if (index($grade[8],"Total") > -1 and index($stufaculty,$ARGV[2]) > -1) {
+   my $err = 0;
+   if ($csv->parse($_)) {
+      @grade = $csv->fields();
+   } else {
+#
+# Try to fix problem in header line by removing any BOM that might be there.
+#
+      if ($start == 1) {
+          $_ =~ s/^\x00\x00\xFE\xFF//;
+          $_ =~ s/^\xFF\xFE\x00\x00//;
+          $_ =~ s/^\xEF\xBB\xBF//;
+          $_ =~ s/^\xFE\xFF//;
+          $_ =~ s/^\xFF\xFE//;
+          if ($csv->parse($_)) {
+             @grade = $csv->fields();
+          } else {
+             printf STDOUT "Warning: Header line could not be parsed - program w
+ill exit.\n";
+             exit;
+          }
+      } else {
+          printf STDOUT "Warning: Line %d could not be parsed and so ignored.\n"
+,$start;
+          $err = 1;
+      }
+   }
+#  Process lines except for first header line.
+   if ($start > 1 and $err == 0) {
+      my $faculty = $grade[$col_faculty];
+      my $papercode = $grade[$col_papercode];
+      my $credits = $grade[$col_credits];
 
-         my $finalgrade = "MISSING";
-         for (my $i = 10; $i < $cols; $i++) {
-             if ($grade[$i] eq "1") {
-                $finalgrade = $allgrades[$i-10];
-                $gpaval = $gpanum[$i-10];
+      my $fullname = $grade[$col_name];
+      my @name = split(/,/,$fullname);
+      my $name1 = $name[0];
+      my $name2 = $name[1];
+
+      my $id = $grade[$col_id];
+      my $stufaculty = $grade[$col_stufaculty];
+      my $birth = $grade[$col_birth];
+      my $prog = $grade[$col_prog];
+      my $gradeval = $grade[$col_gradeval];
+
+      if ($stufaculty eq $ARGV[2]) {
+#
+# Set $gpaval to -1 to deal with missing grades.
+#
+         $gpaval = -1;
+
+         for ($i = 0; $i <= $cols; $i++) {
+             if ($gradeval eq $allgrades[$i]) {
+                $gpaval = $gpanum[$i];
              }
          }
-         if ($finalgrade ne "MISSING") {
-            printf OUTPUT "%s; %s, %s, %s, %s, %d, %s, %d\n", $name1, $name2,  $id, $birth, $papercode, $credits, $finalgrade, $gpaval;
-        }
+
+         if ($gpaval >= 0) {
+            printf OUTPUT "%s; %s, %s, %s, %s, %d, %s, %d, %s\n", $name1, $name2, $id, $birth, $papercode, $credits, $gradeval, $gpaval, $prog;
+         }
+      }
+   }
+   else {
+      $col_faculty = -1;
+      $col_papercode = -1;
+      $col_credits = -1;
+      $col_name = -1;
+      $col_id = -1;
+      $col_stufaculty = -1;
+      $col_birth = -1;
+      $col_prog = -1;
+      $col_status = -1;
+      $col_gradeval = -1;
+#
+# Look for headers in header line
+#
+      for ($i = 0; $i <= $#grade; $i++) {
+
+         if ($grade[$i] eq "Owning School Clevel" or
+            $grade[$i] eq "owning_school_clevel") {
+            $col_faculty = $i;
+         }
+
+         if ($grade[$i] eq "Paper Occurrence" or
+            $grade[$i] eq "paper_occurrence") {
+            $col_papercode = $i;
+         }
+
+         if ($grade[$i] eq "Credits" or
+            $grade[$i] eq "credits") {
+            $col_credits = $i;
+         }
+
+         if ($grade[$i] eq "Name" or
+            $grade[$i] eq "name") {
+            $col_name = $i;
+         }
+
+         if ($grade[$i] eq "Student ID" or
+            $grade[$i] eq "student_id") {
+            $col_id = $i;
+         }
+
+         if ($grade[$i] eq "School of Study Clevel" or
+            $grade[$i] eq "school_of_study_clevel") {
+            $col_stufaculty = $i;
+         }
+
+         if ($grade[$i] eq "Dateofbirth" or
+            $grade[$i] eq "dateofbirth") {
+            $col_birth = $i;
+         }
+
+         if ($grade[$i] eq "Prog Abbr" or
+           $grade[$i] eq "prog_abbr") {
+           $col_prog = $i;
+         }
+
+         if ($grade[$i] eq "Result Status" or
+            $grade[$i] eq "result_status") {
+            $col_status = $i;
+         }
+
+         if ($grade[$i] eq "Grade" or
+            $grade[$i] eq "grade") {
+            $col_gradeval = $i;
+         }
+      }
+
+      if ($col_faculty == -1) {
+         printf STDOUT "Warning: Owning School Clevel missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_papercode == -1) {
+         printf STDOUT "Warning: Paper Occurrence missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_credits == -1) {
+         printf STDOUT "Warning: Credits missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_name == -1) {
+         printf STDOUT "Warning: Name missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_id == -1) {
+         printf STDOUT "Warning: Student ID missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_stufaculty == -1) {
+         printf STDOUT "Warning: School of Study Clevel missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_birth == -1) {
+         printf STDOUT "Warning: Dateofbirth missing - program exiting. - %d\n",$start;
+         exit;
+      }
+
+      if ($col_prog == -1) {
+         printf STDOUT "Warning: Prog Abbr missing - program exiting. - %d\n",$start;
+         exit;
+      }
+      if ($col_gradeval == -1) {
+         printf STDOUT "Warning: Grade missing - program exiting. - %d\n",$start;
+         exit;
       }
    }
 }

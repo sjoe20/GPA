@@ -25,6 +25,7 @@ my $totval = 0;
 
 my $oldname;
 my @olddob;
+my $oldprog;
 my $i;
 my $oktoprint;
 my $posdob;
@@ -37,6 +38,8 @@ while (<GRADEDATA>) {
    my @dob = split(/-/,$grade[2]);
    my $credits = $grade[4];
    my $gpanum = $grade[6];
+   my $prog = $grade[7];
+   chomp($prog);
 
    if ($oldid ne $id) {
       if ($first == 1) {
@@ -47,30 +50,31 @@ while (<GRADEDATA>) {
          $oldname = $name;
          $oldid = $id;
          @olddob = @dob;
+         $oldprog = $prog;
          $first = 0;
       }
       else {
          $oktoprint = 0;
-         if ($olddob[2] < $ARGV[3]) {
+         if ($olddob[0] < $ARGV[3]) {
             $oktoprint = 1;
          }
+
+         $posdob = $olddob[1] - 1;
+         $olddob[1] = $months[$posdob];
          for ($i = 0; $i <12; $i++) {
-             if ($olddob[1] eq $months[$i]) {
-                $posdob = $i;
-             }
              if ($ARGV[2] eq $months[$i]) {
                 $posmonth = $i;
              }
          }
-         if (($posdob <= $posmonth) and ($olddob[2] == $ARGV[3])) {
+         if (($posdob <= $posmonth) and ($olddob[0] == $ARGV[3])) {
             $oktoprint = 1;
          }
          if ($oktoprint == 1) {
             if ($totcredits > 0) { 
-               printf OUTPUT "%s,%s,%s,%d,%6.2f,%d\n", $oldname, $oldid, $olddob[1], $olddob[2], $totval/$totcredits, $totcredits;
+               printf OUTPUT "%s,%s,%s,%d,%6.2f,%d,%s\n", $oldname, $oldid, $olddob[1], $olddob[0], $totval/$totcredits, $totcredits, $oldprog;
             }
             else {
-               printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[2];
+               printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[0];
             }
          }
          if ($gpanum >= 0) {
@@ -83,6 +87,7 @@ while (<GRADEDATA>) {
          $oldname = $name;
          $oldid = $id;
          @olddob = @dob;
+         $oldprog = $prog;
       }
    } else {
       if ($gpanum >= 0) {
@@ -93,25 +98,25 @@ while (<GRADEDATA>) {
 }
 # Last student.
 $oktoprint = 0;
-if ($olddob[2] < $ARGV[3]) {
+if ($olddob[0] < $ARGV[3]) {
    $oktoprint = 1;
 }
+
+$posdob = $olddob[1] - 1;
+$olddob[1] = $months[$posdob];
 for ($i = 0; $i <12; $i++) {
-    if ($olddob[1] eq $months[$i]) {
-       $posdob = $i;
-    }
     if ($ARGV[2] eq $months[$i]) {
        $posmonth = $i;
     }
 }
-if (($posdob <= $posmonth) and ($olddob[2] == $ARGV[3])) {
+if (($posdob <= $posmonth) and ($olddob[0] == $ARGV[3])) {
    $oktoprint = 1;
 }
 if ($oktoprint == 1) {
    if ($totcredits > 0) { 
-      printf OUTPUT "%s,%s,%s,%d,%6.2f,%d\n", $oldname, $oldid, $olddob[1], $olddob[2], $totval/$totcredits, $totcredits;
+      printf OUTPUT "%s,%s,%s,%d,%6.2f,%d,%s\n", $oldname, $oldid, $olddob[1], $olddob[0], $totval/$totcredits, $totcredits, $oldprog;
    }
    else {
-      printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[2];
+      printf OUTPUT "%s,%s,%s,%d,0,0\n", $oldname, $oldid, $olddob[1], $olddob[0];
    }
 }

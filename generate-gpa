@@ -4,8 +4,17 @@
 # and fourth arguments allow us to restrict a listing to the students
 # born in that month and year or earlier.
 #
-# The month should be three letters and start with a capital letter.
+# The Faculty of interest should be one of the following:
+# FASS FCMS FEDU FLAW FMGT FMIS FSEN
 #
+# The month should be one of the following: 
+# Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec
+#
+# The year should consist of four digits.
+#
+# The date format in the input is assumed to be of the form yyyy-mm-dd
+#
+
 if [ -f outgpa.csv ]; then
    rm outgpa.csv
 fi
@@ -22,9 +31,13 @@ if [ -f gpa.csv ]; then
 fi
 gpacalc gpasorted.csv gpa.csv $3 $4
 
+rm gpasorted.csv
+
+sort -b -t "," -n -r -k 5,5 -k 6,6 gpa.csv > $2-gpasorted.csv
+
 echo -n 'Enter 00 to end and anything else to clean up csv files: '
 read task
 if [ $task != "00" ]; then
    rm outgpa.csv
-   rm gpasorted.csv
+   rm gpa.csv
 fi
