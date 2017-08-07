@@ -35,9 +35,5 @@ rm gpasorted.csv
 
 sort -b -t "," -n -r -k 5,5 -k 6,6 gpa.csv > $2-gpasorted.csv
 
-echo -n 'Enter 00 to end and anything else to clean up csv files: '
-read task
-if [ $task != "00" ]; then
-   rm outgpa.csv
-   rm gpa.csv
-fi
+rm outgpa.csv
+rm gpa.csv
